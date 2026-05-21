@@ -15,9 +15,10 @@ interface AnimatedFolderProps {
   className?: string
   onFolderClick?: () => void
   style?: React.CSSProperties
+  color?: string
 }
 
-export function AnimatedFolder({ folderId, title, projects, className, onFolderClick, style }: AnimatedFolderProps) {
+export function AnimatedFolder({ folderId, title, projects, className, onFolderClick, style, color }: AnimatedFolderProps) {
   const [isHovered, setIsHovered] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
   const [sourceRect, setSourceRect] = useState<DOMRect | null>(null)
@@ -75,8 +76,10 @@ export function AnimatedFolder({ folderId, title, projects, className, onFolderC
         <div
           className="absolute inset-0 rounded-2xl transition-opacity duration-500"
           style={{
-            background: "radial-gradient(circle at 50% 70%, var(--color-accent) 0%, transparent 70%)",
-            opacity: isHovered ? 0.08 : 0,
+            background: color && color.includes('gradient')
+              ? `radial-gradient(circle at 50% 70%, ${color.match(/#[a-fA-F0-9]{3,6}/)?.[0] || 'var(--color-accent)'} 0%, transparent 70%)`
+              : "radial-gradient(circle at 50% 70%, var(--color-accent) 0%, transparent 70%)",
+            opacity: isHovered ? 0.12 : 0,
           }}
         />
 
@@ -85,7 +88,8 @@ export function AnimatedFolder({ folderId, title, projects, className, onFolderC
           <div
             className="absolute w-32 h-24 rounded-lg shadow-md"
             style={{
-              backgroundColor: "var(--color-folder-back)",
+              background: color || "var(--color-folder-back)",
+              filter: color ? "brightness(0.9)" : "none",
               transformOrigin: "bottom center",
               transform: isHovered ? "rotateX(-15deg)" : "rotateX(0deg)",
               transition: "transform 500ms cubic-bezier(0.34, 1.56, 0.64, 1)",
@@ -97,7 +101,8 @@ export function AnimatedFolder({ folderId, title, projects, className, onFolderC
           <div
             className="absolute w-12 h-4 rounded-t-md"
             style={{
-              backgroundColor: "var(--color-folder-tab)",
+              background: color || "var(--color-folder-tab)",
+              filter: color ? "brightness(0.85)" : "none",
               top: "calc(50% - 48px - 12px)",
               left: "calc(50% - 64px + 16px)",
               transformOrigin: "bottom center",
@@ -142,7 +147,7 @@ export function AnimatedFolder({ folderId, title, projects, className, onFolderC
           <div
             className="absolute w-32 h-24 rounded-lg shadow-lg"
             style={{
-              backgroundColor: "var(--color-folder-front)",
+              background: color || "var(--color-folder-front)",
               top: "calc(50% - 48px + 4px)",
               transformOrigin: "bottom center",
               transform: isHovered ? "rotateX(25deg) translateY(8px)" : "rotateX(0deg)",

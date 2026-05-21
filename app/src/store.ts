@@ -33,19 +33,52 @@ interface AppState {
   gainXP: (amount: number) => void
 }
 
+const SPIRITUAL_GRADIENTS = [
+  'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)', // Violeta/Índigo (Intuição)
+  'linear-gradient(135deg, #ec4899 0%, #be185d 100%)', // Rosa Profundo (Amor)
+  'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)', // Azul Safira (Sabedoria)
+  'linear-gradient(135deg, #10b981 0%, #059669 100%)', // Esmeralda (Cura)
+  'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)', // Ouro Âmbar (Iluminação)
+  'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)', // Ciano Celeste (Clareza)
+  'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)'  // Rubi (Devoção)
+]
+
+const calculateXPAndLevel = (folders: Folder[], notes: Note[]) => {
+  // Base XP: 100 per folder + 50 per note
+  let xp = folders.length * 100 + notes.length * 50
+
+  // 1 XP for every 10 characters written in the notes (up to 150 XP per note to prevent extreme values)
+  notes.forEach(note => {
+    const contentLength = note.content ? note.content.trim().length : 0
+    const contentXP = Math.min(150, Math.floor(contentLength / 10))
+    xp += contentXP
+  })
+
+  // Level: 100 XP per level, starting at level 1
+  const level = Math.floor(xp / 100) + 1
+  return { spiritualXP: xp, level }
+}
+
 export const useStore = create<AppState>()(
   persist(
-    (set, get) => ({
-      folders: [
+    (set) => {
+      // Helper to calculate XP with current state
+      const updateXP = (folders: Folder[], notes: Note[]) => {
+        return calculateXPAndLevel(folders, notes)
+      }
+
+      // Initial state folders and notes
+      const initialFolders = [
         {
           id: '1',
           title: 'Evangelho de João',
-          color: 'var(--color-folder-back)',
+          color: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
           goal: 21,
           createdAt: Date.now(),
         }
-      ],
-      notes: [
+      ]
+
+      const initialNotes = [
         {
           id: '1',
           folderId: '1',
@@ -54,56 +87,92 @@ export const useStore = create<AppState>()(
           createdAt: Date.now(),
           updatedAt: Date.now(),
         }
-      ],
-      spiritualXP: 10,
-      level: 1,
-      apiKey: null,
-      setApiKey: (key) => set({ apiKey: key }),
-      gainXP: (amount) => set((state) => {
-        const newXP = state.spiritualXP + amount;
-        const newLevel = Math.floor(newXP / 100) + 1; // 100 XP per level
-        return { spiritualXP: newXP, level: newLevel };
-      }),
-      addFolder: (title, goal, color) => set((state) => ({
-        folders: [...state.folders, {
-          id: crypto.randomUUID(),
-          title,
-          goal,
-          color: color || 'var(--color-folder-back)',
-          createdAt: Date.now()
-        }]
-      })),
-      deleteFolder: (id) => set((state) => ({
-        folders: state.folders.filter(f => f.id !== id),
-        notes: state.notes.filter(n => n.folderId !== id)
-      })),
-      addNote: (folderId, title, content) => {
-        const id = crypto.randomUUID()
-        set((state) => ({
-          notes: [...state.notes, {
-            id,
-            folderId,
+      ]
+
+      const initialXPStats = calculateXPAndLevel(initialFolders, initialNotes)
+
+      return {
+        folders: initialFolders,
+        notes: initialNotes,
+        spiritualXP: initialXPStats.spiritualXP,
+        level: initialXPStats.level,
+        apiKey: null,
+        setApiKey: (key) => set({ apiKey: key }),
+        gainXP: () => {
+          // No-op since XP is computed dynamically on state changes
+        },
+        addFolder: (title, goal, color) => set((state) => {
+          const folderColor = color || SPIRITUAL_GRADIENTS[state.folders.length % SPIRITUAL_GRADIENTS.length]
+          const newFolders = [...state.folders, {
+            id: crypto.randomUUID(),
             title,
-            content,
-            createdAt: Date.now(),
-            updatedAt: Date.now()
+            goal,
+            color: folderColor,
+            createdAt: Date.now()
           }]
-        }))
-        get().gainXP(50) // 50 XP for a new note
-        return id
-      },
-      updateNote: (id, title, content) => {
-        set((state) => ({
-          notes: state.notes.map(n => n.id === id ? { ...n, title, content, updatedAt: Date.now() } : n)
-        }))
-        get().gainXP(10) // 10 XP for editing
-      },
-      deleteNote: (id) => set((state) => ({
-        notes: state.notes.filter(n => n.id !== id)
-      }))
-    }),
+          const stats = updateXP(newFolders, state.notes)
+          return {
+            folders: newFolders,
+            spiritualXP: stats.spiritualXP,
+            level: stats.level
+          }
+        }),
+        deleteFolder: (id) => set((state) => {
+          const newFolders = state.folders.filter(f => f.id !== id)
+          const newNotes = state.notes.filter(n => n.folderId !== id)
+          const stats = updateXP(newFolders, newNotes)
+          return {
+            folders: newFolders,
+            notes: newNotes,
+            spiritualXP: stats.spiritualXP,
+            level: stats.level
+          }
+        }),
+        addNote: (folderId, title, content) => {
+          const id = crypto.randomUUID()
+          set((state) => {
+            const newNotes = [...state.notes, {
+              id,
+              folderId,
+              title,
+              content,
+              createdAt: Date.now(),
+              updatedAt: Date.now()
+            }]
+            const stats = updateXP(state.folders, newNotes)
+            return {
+              notes: newNotes,
+              spiritualXP: stats.spiritualXP,
+              level: stats.level
+            }
+          })
+          return id
+        },
+        updateNote: (id, title, content) => {
+          set((state) => {
+            const newNotes = state.notes.map(n => n.id === id ? { ...n, title, content, updatedAt: Date.now() } : n)
+            const stats = updateXP(state.folders, newNotes)
+            return {
+              notes: newNotes,
+              spiritualXP: stats.spiritualXP,
+              level: stats.level
+            }
+          })
+        },
+        deleteNote: (id) => set((state) => {
+          const newNotes = state.notes.filter(n => n.id !== id)
+          const stats = updateXP(state.folders, newNotes)
+          return {
+            notes: newNotes,
+            spiritualXP: stats.spiritualXP,
+            level: stats.level
+          }
+        })
+      }
+    },
     {
-      name: 'diario-espiritual-storage'
+      name: 'diario-espiritual-storage',
+      // Migrate storage if needed, but since keys remain identical, it is transparent!
     }
   )
 )

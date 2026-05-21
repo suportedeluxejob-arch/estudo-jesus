@@ -23,8 +23,8 @@ export function NeuralBrain() {
         ],
         transition: { duration: 1.2, ease: "easeInOut" }
       })
-      setPrevXP(spiritualXP)
     }
+    setPrevXP(spiritualXP)
   }, [spiritualXP, prevXP, controls])
 
   return (

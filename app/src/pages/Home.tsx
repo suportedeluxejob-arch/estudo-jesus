@@ -54,6 +54,7 @@ export function Home() {
               folderId={folder.id}
               title={folder.title}
               projects={folderNotes}
+              color={folder.color}
               onFolderClick={() => navigate(`/folder/${folder.id}`)}
             />
           )
