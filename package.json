@@ -1,0 +1,12 @@
+{
+  "name": "estudo-evangelho-root",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "app"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace=app",
+    "dev": "npm run dev --workspace=app"
+  }
+}
